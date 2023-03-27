@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/goark/errs"
+	"github.com/goark/gpt-cli/ecode"
 	"github.com/goark/gpt-cli/gpt"
 	"github.com/rs/zerolog"
 	"github.com/sashabaranov/go-openai"
@@ -13,12 +14,13 @@ import (
 // ChatContext is context data for chat
 type ChatContext struct {
 	*gpt.GPTContext
-	profile openai.ChatCompletionRequest
+	profile  openai.ChatCompletionRequest
+	savePath string
 }
 
 // New function create new ChatContext instance.
-func New(apiKey string, logger *zerolog.Logger, profilePath string) (*ChatContext, error) {
-	gctx, err := gpt.New(apiKey, logger)
+func New(apiKey, cacheDir string, logger *zerolog.Logger, profilePath, savePath string) (*ChatContext, error) {
+	gctx, err := gpt.New(apiKey, cacheDir, logger)
 	if err != nil {
 		return nil, errs.Wrap(err)
 	}
@@ -39,7 +41,38 @@ func New(apiKey string, logger *zerolog.Logger, profilePath string) (*ChatContex
 	if profile.Messages == nil {
 		profile.Messages = []openai.ChatCompletionMessage{}
 	}
-	return &ChatContext{GPTContext: gctx, profile: profile}, nil
+	return &ChatContext{
+		GPTContext: gctx,
+		profile:    profile,
+		savePath:   savePath,
+	}, nil
+}
+
+func (cctx *ChatContext) SavePath() string {
+	if cctx == nil {
+		return ""
+	}
+	return cctx.savePath
+}
+
+// Save method saves openai.ChatCompletionRequest data.
+func (cctx *ChatContext) Save() error {
+	if cctx == nil {
+		return errs.Wrap(ecode.ErrNullPointer)
+	}
+	var file *os.File
+	var err error
+	if len(cctx.savePath) == 0 {
+		file, err = os.CreateTemp(cctx.CacheDir(), "chat.*.json")
+	} else {
+		file, err = os.Create(cctx.savePath)
+	}
+	if err != nil {
+		return errs.Wrap(err, errs.WithContext("savePath", cctx.savePath))
+	}
+	defer file.Close()
+	cctx.savePath = file.Name()
+	return json.NewEncoder(file).Encode(cctx.profile)
 }
 
 /* MIT License

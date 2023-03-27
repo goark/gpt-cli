@@ -36,43 +36,59 @@ func newChatCmd(ui *rwi.RWI) *cobra.Command {
 			if err != nil {
 				return debugPrint(ui, err)
 			}
+			savePath, err := cmd.Flags().GetString("save-file")
+			if err != nil {
+				return debugPrint(ui, err)
+			}
 
 			// create Chat context
-			cctx, err := chat.New(opts.APIKey, opts.Logger, profilePath)
+			cctx, err := chat.New(opts.APIKey, opts.CacheDir, opts.Logger, profilePath, savePath)
 			if err != nil {
 				opts.Logger.Error().Interface("error", errs.Wrap(err)).Send()
 				return debugPrint(ui, err)
 			}
 
-			// interactive mode
 			if interactivMode {
-				return debugPrint(ui, cctx.Interactive(cmd.Context(), ui.Writer()))
-			}
-
-			// single mode
-			var text string
-			if clipboardFlag {
-				text, err = clipboard.ReadAll()
-				if err != nil {
+				// interactive mode
+				if err := cctx.Interactive(cmd.Context(), ui.Writer()); err != nil {
 					return debugPrint(ui, err)
+				}
+				if len(cctx.SavePath()) > 0 {
+					return ui.Outputln("\nsave to", cctx.SavePath())
 				}
 			} else {
-				b, err := io.ReadAll(ui.Reader())
+				// single mode
+				var text string
+				if clipboardFlag {
+					text, err = clipboard.ReadAll()
+					if err != nil {
+						return debugPrint(ui, err)
+					}
+				} else {
+					b, err := io.ReadAll(ui.Reader())
+					if err != nil {
+						return debugPrint(ui, err)
+					}
+					text = string(b)
+				}
+				respMsg, err := cctx.Request(cmd.Context(), text)
+				if len(respMsg) > 0 {
+					_ = debugPrint(ui, ui.Outputln(respMsg))
+				}
 				if err != nil {
 					return debugPrint(ui, err)
 				}
-				text = string(b)
+				if len(cctx.SavePath()) > 0 {
+					return ui.Outputln("\nsave to", cctx.SavePath())
+				}
 			}
-			respMsg, err := cctx.Request(cmd.Context(), text)
-			if err != nil {
-				return debugPrint(ui, err)
-			}
-			return debugPrint(ui, ui.Outputln(respMsg))
+			return nil
 		},
 	}
 	chatCmd.Flags().BoolP("interactive", "i", false, "Interactive mode")
 	chatCmd.Flags().BoolP("clipboard", "c", false, "Input message from clipboard")
-	chatCmd.Flags().StringP("profile", "p", "", "Path of Profile file (JSON format)")
+	chatCmd.Flags().StringP("profile", "p", "", "Path of profile file (JSON format)")
+	chatCmd.Flags().StringP("save-file", "f", "", "Path of save file (JSON format)")
 
 	return chatCmd
 }

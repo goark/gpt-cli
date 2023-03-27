@@ -8,21 +8,34 @@ import (
 )
 
 type GPTContext struct {
-	apiKey string
-	logger *zerolog.Logger
+	apiKey   string
+	cacheDir string
+	logger   *zerolog.Logger
 }
 
 // New function creates APIContext instance.
-func New(apiKey string, logger *zerolog.Logger) (*GPTContext, error) {
+func New(apiKey, cacheDir string, logger *zerolog.Logger) (*GPTContext, error) {
 	if len(apiKey) == 0 {
 		return nil, errs.Wrap(ecode.ErrAPIKey)
 	}
-	return &GPTContext{apiKey: apiKey, logger: logger}, nil
+	if len(cacheDir) == 0 {
+		cacheDir = "."
+	}
+	return &GPTContext{
+		apiKey:   apiKey,
+		cacheDir: cacheDir,
+		logger:   logger,
+	}, nil
 }
 
 // Client method creates new openai.Client.
 func (gctx *GPTContext) Client() *openai.Client {
 	return openai.NewClient(gctx.apiKey)
+}
+
+// CacheDir method returns cache directory.
+func (gctx *GPTContext) CacheDir() string {
+	return gctx.cacheDir
 }
 
 // Logger method returns logger.
