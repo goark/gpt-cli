@@ -15,7 +15,7 @@ func main() {
 			rwi.WithErrorWriter(os.Stderr),
 		),
 		os.Args[1:],
-	).Exit()
+	).ExitIfNotNormal()
 }
 
 /* MIT License
