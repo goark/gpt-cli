@@ -2,29 +2,40 @@ package chat
 
 import (
 	"context"
+	"strings"
 
 	"github.com/goark/errs"
+	"github.com/goark/gpt-cli/ecode"
 	openai "github.com/sashabaranov/go-openai"
 )
 
 // Request requesta OpenAI Chat completion, and returns response message. (REST access)
 func (cctx *ChatContext) Request(ctx context.Context, msg string) (string, error) {
+	if cctx == nil {
+		return "", errs.Wrap(ecode.ErrNullPointer)
+	}
+	msg = strings.TrimSpace(msg)
+	if len(msg) == 0 {
+		return "", errs.Wrap(ecode.ErrNoContent, errs.WithContext("msg", msg))
+	}
 	resp, err := cctx.requestRaw(ctx, msg)
 	if err != nil {
 		return "", errs.Wrap(err)
 	}
-	if len(resp.Choices) == 0 {
-		return "", nil
+	var resText string
+	if len(resp.Choices) > 0 {
+		resText = resp.Choices[0].Message.Content
+		cctx.profile.Messages = append(cctx.profile.Messages, openai.ChatCompletionMessage{Role: openai.ChatMessageRoleAssistant, Content: resText})
 	}
-	return resp.Choices[0].Message.Content, nil
+	err = cctx.Save()
+	return resText, errs.Wrap(err)
 }
 
 func (cctx *ChatContext) requestRaw(ctx context.Context, msg string) (openai.ChatCompletionResponse, error) {
-	if len(msg) > 0 {
-		cctx.profile.Messages = append(cctx.profile.Messages, openai.ChatCompletionMessage{Role: openai.ChatMessageRoleUser, Content: msg})
-	}
+	cctx.profile.Stream = false
+	cctx.profile.Messages = append(cctx.profile.Messages, openai.ChatCompletionMessage{Role: openai.ChatMessageRoleUser, Content: msg})
 	cctx.Logger().Info().Interface("request", cctx.profile).Send()
-	resp, err := openai.NewClient(cctx.APIKey()).CreateChatCompletion(ctx, cctx.profile)
+	resp, err := cctx.Client().CreateChatCompletion(ctx, cctx.profile)
 	if err != nil {
 		err = errs.Wrap(err, errs.WithContext("request", cctx.profile))
 		cctx.Logger().Error().Interface("error", err).Send()

@@ -19,3 +19,4 @@
 dist/
 .task/
 work/
+chat.*.json

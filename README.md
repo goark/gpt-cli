@@ -56,10 +56,11 @@ Aliases:
   chat, c
 
 Flags:
-  -c, --clipboard        Input message from clipboard
-  -h, --help             help for chat
-  -i, --interactive      Interactive mode
-  -p, --profile string   Path of Profile file (JSON format)
+  -c, --clipboard          Input message from clipboard
+  -h, --help               help for chat
+  -i, --interactive        Interactive mode
+  -p, --profile string     Path of profile file (JSON format)
+  -f, --save-file string   Path of save file (JSON format)
 
 Global Flags:
       --api-key string     OpenAI API key
@@ -74,6 +75,8 @@ Global Flags:
 ```
 $ echo hello | gpt-cli c --api-key "your-api-key"
 Hello! How can I help you today?
+
+save to /home/username/.cache/gpt-cli/chat.2133582955.json
 ```
 
 ### Interactive mode
@@ -103,6 +106,8 @@ Chat> ありがとうございます。雑誌を読むのが楽しみです
 どういたしまして。日経サイエンスは、科学技術に関する話題や最新の研究成果などが掲載され、とても興味深く読める雑誌ですね。ChatGPTに特集が組まれるということで、ますます注目が集まりそうですね。楽しみにしていてください。
 
 Chat> q
+
+save to /home/username/.cache/gpt-cli/chat.2788390222.json
 ```
 
 ## Configuration to $XDG_CONFIG_HOME/gpt-cli/config.yaml file

@@ -2,14 +2,16 @@ package facade
 
 import (
 	"github.com/goark/errs"
+	"github.com/goark/gocli/cache"
 	"github.com/goark/gpt-cli/logger"
 	"github.com/rs/zerolog"
 	"github.com/spf13/viper"
 )
 
 type options struct {
-	APIKey string
-	Logger *zerolog.Logger
+	APIKey   string
+	CacheDir string
+	Logger   *zerolog.Logger
 }
 
 func getOptions() (*options, error) {
@@ -21,8 +23,9 @@ func getOptions() (*options, error) {
 		return nil, errs.Wrap(err)
 	}
 	return &options{
-		APIKey: viper.GetString("api-key"),
-		Logger: logger,
+		APIKey:   viper.GetString("api-key"),
+		CacheDir: cache.Dir(Name),
+		Logger:   logger,
 	}, nil
 }
 
