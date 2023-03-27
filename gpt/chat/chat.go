@@ -1,24 +1,24 @@
 package chat
 
 import (
-	"context"
 	"encoding/json"
 	"os"
 
 	"github.com/goark/errs"
-	"github.com/goark/gpt-cli/api"
+	"github.com/goark/gpt-cli/gpt"
+	"github.com/rs/zerolog"
 	openai "github.com/sashabaranov/go-openai"
 )
 
 // ChatContext is context data for chat
 type ChatContext struct {
-	*api.APIContext
+	*gpt.GPTContext
 	profile openai.ChatCompletionRequest
 }
 
 // New function create new ChatContext instance.
-func New(apiKey string, profilePath string) (*ChatContext, error) {
-	actx, err := api.New(apiKey)
+func New(apiKey string, logger *zerolog.Logger, profilePath string) (*ChatContext, error) {
+	gctx, err := gpt.New(apiKey, logger)
 	if err != nil {
 		return nil, errs.Wrap(err)
 	}
@@ -39,27 +39,7 @@ func New(apiKey string, profilePath string) (*ChatContext, error) {
 	if profile.Messages == nil {
 		profile.Messages = []openai.ChatCompletionMessage{}
 	}
-	return &ChatContext{APIContext: actx, profile: profile}, nil
-}
-
-// RequestRaw requesta OpenAI Chat completion, and returns raw response. (REST access)
-func (cctx *ChatContext) RequestRaw(ctx context.Context, msg string) (openai.ChatCompletionResponse, error) {
-	cctx.profile.Messages = append(cctx.profile.Messages, openai.ChatCompletionMessage{Role: openai.ChatMessageRoleUser, Content: msg})
-	resp, err := openai.NewClient(cctx.APIKey()).CreateChatCompletion(ctx, cctx.profile)
-	return resp, errs.Wrap(err, errs.WithContext("request", cctx.profile))
-}
-
-// Request requesta OpenAI Chat completion, and returns response message. (REST access)
-func (cctx *ChatContext) Request(ctx context.Context, msg string) (string, error) {
-	cctx.profile.Messages = append(cctx.profile.Messages, openai.ChatCompletionMessage{Role: openai.ChatMessageRoleUser, Content: msg})
-	resp, err := openai.NewClient(cctx.APIKey()).CreateChatCompletion(ctx, cctx.profile)
-	if err != nil {
-		return "", errs.Wrap(err, errs.WithContext("request", cctx.profile))
-	}
-	if len(resp.Choices) == 0 {
-		return "", nil
-	}
-	return resp.Choices[0].Message.Content, nil
+	return &ChatContext{GPTContext: gctx, profile: profile}, nil
 }
 
 /* MIT License

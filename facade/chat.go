@@ -1,14 +1,13 @@
 package facade
 
 import (
-	"encoding/json"
 	"io"
 
 	"github.com/atotto/clipboard"
+	"github.com/goark/errs"
 	"github.com/goark/gocli/rwi"
-	"github.com/goark/gpt-cli/api/chat"
+	"github.com/goark/gpt-cli/gpt/chat"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 // newVersionCmd returns cobra.Command instance for show sub-command
@@ -20,7 +19,10 @@ func newChatCmd(ui *rwi.RWI) *cobra.Command {
 		Long:    "Chat with GPT-x, input from standard input.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Global options
-			apiKey := viper.GetString("api-key")
+			opts, err := getOptions()
+			if err != nil {
+				return debugPrint(ui, err)
+			}
 			// local options
 			interactivMode, err := cmd.Flags().GetBool("interactive")
 			if err != nil {
@@ -30,18 +32,15 @@ func newChatCmd(ui *rwi.RWI) *cobra.Command {
 			if err != nil {
 				return debugPrint(ui, err)
 			}
-			rawFlag, err := cmd.Flags().GetBool("raw")
-			if err != nil {
-				return debugPrint(ui, err)
-			}
 			profilePath, err := cmd.Flags().GetString("profile")
 			if err != nil {
 				return debugPrint(ui, err)
 			}
 
 			// create Chat context
-			cctx, err := chat.New(apiKey, profilePath)
+			cctx, err := chat.New(opts.APIKey, opts.Logger, profilePath)
 			if err != nil {
+				opts.Logger.Error().Interface("error", errs.Wrap(err)).Send()
 				return debugPrint(ui, err)
 			}
 
@@ -64,14 +63,6 @@ func newChatCmd(ui *rwi.RWI) *cobra.Command {
 				}
 				text = string(b)
 			}
-
-			if rawFlag {
-				resp, err := cctx.RequestRaw(cmd.Context(), text)
-				if err != nil {
-					return debugPrint(ui, err)
-				}
-				return debugPrint(ui, json.NewEncoder(ui.Writer()).Encode(resp))
-			}
 			respMsg, err := cctx.Request(cmd.Context(), text)
 			if err != nil {
 				return debugPrint(ui, err)
@@ -81,7 +72,6 @@ func newChatCmd(ui *rwi.RWI) *cobra.Command {
 	}
 	chatCmd.Flags().BoolP("interactive", "i", false, "Interactive mode")
 	chatCmd.Flags().BoolP("clipboard", "c", false, "Input message from clipboard")
-	chatCmd.Flags().BoolP("raw", "", false, "Output raw response (JSON format)")
 	chatCmd.Flags().StringP("profile", "p", "", "Path of Profile file (JSON format)")
 
 	return chatCmd

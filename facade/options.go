@@ -1,25 +1,29 @@
-package api
+package facade
 
 import (
 	"github.com/goark/errs"
-	"github.com/goark/gpt-cli/ecode"
+	"github.com/goark/gpt-cli/logger"
+	"github.com/rs/zerolog"
+	"github.com/spf13/viper"
 )
 
-type APIContext struct {
-	apiKey string
+type options struct {
+	APIKey string
+	Logger *zerolog.Logger
 }
 
-// New function creates APIContext instance.
-func New(apiKey string) (*APIContext, error) {
-	if len(apiKey) == 0 {
-		return nil, errs.Wrap(ecode.ErrAPIKey)
+func getOptions() (*options, error) {
+	logger, err := logger.New(
+		logger.LevelFrom(viper.GetString("log-level")),
+		viper.GetString("log-dir"),
+	)
+	if err != nil {
+		return nil, errs.Wrap(err)
 	}
-	return &APIContext{apiKey: apiKey}, nil
-}
-
-// ApiKey method returns API key string.
-func (actx *APIContext) APIKey() string {
-	return actx.apiKey
+	return &options{
+		APIKey: viper.GetString("api-key"),
+		Logger: logger,
+	}, nil
 }
 
 /* MIT License

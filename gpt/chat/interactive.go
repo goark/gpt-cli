@@ -12,12 +12,14 @@ import (
 	openai "github.com/sashabaranov/go-openai"
 )
 
+// Interactive method is chatting in interactive mode (stream access).
 func (cctx *ChatContext) Interactive(ctx context.Context, w io.Writer) error {
+	client := openai.NewClient(cctx.APIKey())
 	editor := readline.Editor{
 		Prompt: func() (int, error) { return fmt.Print("\nChat>") },
 	}
+	fmt.Fprintln(w, "Input 'q' or 'quit' to stop")
 	cctx.profile.Stream = true
-	client := openai.NewClient(cctx.APIKey())
 	for {
 		text, err := editor.ReadLine(ctx)
 		if err != nil {
@@ -27,7 +29,7 @@ func (cctx *ChatContext) Interactive(ctx context.Context, w io.Writer) error {
 			break
 		}
 		cctx.profile.Messages = append(cctx.profile.Messages, openai.ChatCompletionMessage{Role: openai.ChatMessageRoleUser, Content: text})
-		resText, err := stream(ctx, client, &cctx.profile, w)
+		resText, err := cctx.stream(ctx, client, w)
 		if err != nil {
 			return errs.Wrap(err)
 		}
@@ -36,32 +38,45 @@ func (cctx *ChatContext) Interactive(ctx context.Context, w io.Writer) error {
 	return nil
 }
 
-func stream(ctx context.Context, client *openai.Client, profile *openai.ChatCompletionRequest, w io.Writer) (string, error) {
-	stream, err := client.CreateChatCompletionStream(ctx, *profile)
+func (cctx *ChatContext) stream(ctx context.Context, client *openai.Client, w io.Writer) (string, error) {
+	cctx.Logger().Info().Interface("request", cctx.profile).Send()
+	stream, err := client.CreateChatCompletionStream(ctx, cctx.profile)
 	if err != nil {
-		return "", errs.Wrap(err)
+		err = errs.Wrap(err)
+		cctx.Logger().Error().Interface("error", err).Send()
+		return "", err
 	}
 	defer stream.Close()
 
 	builder := strings.Builder{}
+	fmt.Fprintln(w)
 	for {
-		response, err := stream.Recv()
+		resp, err := stream.Recv()
 		if err != nil {
 			if errs.Is(err, io.EOF) {
 				break
 			}
-			return "", errs.Wrap(ecode.ErrStream, errs.WithCause(err))
+			err = errs.Wrap(ecode.ErrStream, errs.WithCause(err))
+			cctx.Logger().Error().Interface("error", err).Send()
+			return "", err
 		}
-		if len(response.Choices) > 0 {
-			delta := response.Choices[0].Delta.Content
-			if _, err := builder.WriteString(delta); err != nil {
-				return "", errs.Wrap(err)
-			}
-			if _, err := io.WriteString(w, delta); err != nil {
-				return "", errs.Wrap(err)
+		cctx.Logger().Info().Interface("response", resp).Send()
+		if len(resp.Choices) > 0 {
+			if delta := resp.Choices[0].Delta.Content; len(delta) > 0 {
+				if _, err := builder.WriteString(delta); err != nil {
+					err = errs.Wrap(err)
+					cctx.Logger().Error().Interface("error", err).Send()
+					return "", err
+				}
+				if _, err := io.WriteString(w, delta); err != nil {
+					err = errs.Wrap(err)
+					cctx.Logger().Error().Interface("error", err).Send()
+					return "", err
+				}
 			}
 		}
 	}
+	fmt.Fprintln(w)
 	return builder.String(), nil
 }
 

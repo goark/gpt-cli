@@ -1,42 +1,37 @@
-package logger
+package chat
 
 import (
-	"fmt"
-	"os"
-	"path/filepath"
-	"time"
+	"context"
 
 	"github.com/goark/errs"
-	"github.com/goark/gocli/cache"
-	"github.com/rs/zerolog"
+	openai "github.com/sashabaranov/go-openai"
 )
 
-// New function returns new zerolog.Logger instance.
-func New(lvl zerolog.Level, dir string) (*zerolog.Logger, error) {
-	logger := zerolog.Nop()
-	if lvl == zerolog.NoLevel {
-		return &logger, nil
+// Request requesta OpenAI Chat completion, and returns response message. (REST access)
+func (cctx *ChatContext) Request(ctx context.Context, msg string) (string, error) {
+	resp, err := cctx.requestRaw(ctx, msg)
+	if err != nil {
+		return "", errs.Wrap(err)
 	}
-	logpath := getPath(dir)
-	if file, err := os.OpenFile(logpath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600); err != nil {
-		return &logger, errs.Wrap(err, errs.WithContext("logpath", logpath))
-	} else {
-		logger = zerolog.New(file).Level(lvl).With().Timestamp().Logger()
+	if len(resp.Choices) == 0 {
+		return "", nil
 	}
-	return &logger, nil
+	return resp.Choices[0].Message.Content, nil
 }
 
-// DefaultLogDir function returns default log directory ($XDG_CACHE_HOME/appName/)
-func DefaultLogDir(appName string) string {
-	return cache.Dir(appName)
-}
-
-func getPath(dir string) string {
-	if len(dir) == 0 {
-		dir = "."
+func (cctx *ChatContext) requestRaw(ctx context.Context, msg string) (openai.ChatCompletionResponse, error) {
+	if len(msg) > 0 {
+		cctx.profile.Messages = append(cctx.profile.Messages, openai.ChatCompletionMessage{Role: openai.ChatMessageRoleUser, Content: msg})
 	}
-	_ = os.MkdirAll(dir, 0700)
-	return filepath.Join(dir, fmt.Sprintf("access.%s.log", time.Now().Local().Format("20060102")))
+	cctx.Logger().Info().Interface("request", cctx.profile).Send()
+	resp, err := openai.NewClient(cctx.APIKey()).CreateChatCompletion(ctx, cctx.profile)
+	if err != nil {
+		err = errs.Wrap(err, errs.WithContext("request", cctx.profile))
+		cctx.Logger().Error().Interface("error", err).Send()
+		return resp, err
+	}
+	cctx.Logger().Info().Interface("response", resp).Send()
+	return resp, nil
 }
 
 /* MIT License

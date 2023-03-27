@@ -33,10 +33,12 @@ Available Commands:
   version     Print the version number
 
 Flags:
-      --api-key string   OpenAI API key
-      --config string    Config file (default /home/username/.config/gpt-cli/config.yaml)
-      --debug            for debug
-  -h, --help             help for gpt-cli
+      --api-key string     OpenAI API key
+      --config string      Config file (default /home/username/.config/gpt-cli/config.yaml)
+      --debug              for debug
+  -h, --help               help for gpt-cli
+      --log-dir string     Directory for log files (default "/home/username/.cache/gpt-cli")
+      --log-level string   log level [nop|error|warn|info|debug|trace] (default "nop")
 
 Use "gpt-cli [command] --help" for more information about a command.
 ```
@@ -58,12 +60,13 @@ Flags:
   -h, --help             help for chat
   -i, --interactive      Interactive mode
   -p, --profile string   Path of Profile file (JSON format)
-      --raw              Output raw response (JSON format)
 
 Global Flags:
-      --api-key string   OpenAI API key
-      --config string    Config file (default /home/username/.config/gpt-cli/config.yaml)
-      --debug            for debug
+      --api-key string     OpenAI API key
+      --config string      Config file (default /home/username/.config/gpt-cli/config.yaml)
+      --debug              for debug
+      --log-dir string     Directory for log files (default "/home/username/.cache/gpt-cli")
+      --log-level string   Log level [nop|error|warn|info|debug|trace] (default "nop")
 ```
 
 ### Input form Standard input
@@ -79,8 +82,11 @@ Hello! How can I help you today?
 $ gpt-cli c -i --api-key "your-api-key"
 
 Chat> こんにちは
+
 こんにちは！私はAIのアシスタントです。何かお手伝いできることがありますか？
+
 Chat> 科学雑誌の日経サイエンスにChatGPTの特集が載るそうです。どんな内容になるか予想してみましょう。
+
 ChatGPTとは、人工知能による自然言語処理を利用した対話型のチャットボットです。日経サイエンスがChatGPTに特集を組むことから、以下のような予想が考えられます。
 
 1. ChatGPTの機能や特徴の紹介
@@ -91,15 +97,20 @@ ChatGPTが活用される応用例として、カスタマーサポート、医�
 
 3. ChatGPTの進化と今後の展望について
 ChatGPTは、自然言語処理分野での革新的な技術であり、今後、ますます進化していくことが期待されています。特集では、今後どのような改良がされ、また、普及の度合いがどこまで広がるのか、その展望についても取り上げられるかもしれません。
+
 Chat> ありがとうございます。雑誌を読むのが楽しみです
+
 どういたしまして。日経サイエンスは、科学技術に関する話題や最新の研究成果などが掲載され、とても興味深く読める雑誌ですね。ChatGPTに特集が組まれるということで、ますます注目が集まりそうですね。楽しみにしていてください。
+
 Chat> q
 ```
 
-### Save API key to config.yaml file
+## Configuration to $XDG_CONFIG_HOME/gpt-cli/config.yaml file
 
-```yaml:$XDG_CONFIG_HOME/gpt-cli/config.yaml
+```yaml
 api-key: your_api_key_string
+log-dir: /var/log/gpt-cli
+log-level: info
 ```
 
 ## Modules Requirement Graph

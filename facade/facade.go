@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/signal"
 	"runtime"
+	"strings"
 
 	"github.com/goark/errs"
 
@@ -13,6 +14,7 @@ import (
 	"github.com/goark/gocli/exitcode"
 	"github.com/goark/gocli/rwi"
 	"github.com/goark/gpt-cli/ecode"
+	"github.com/goark/gpt-cli/logger"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -43,9 +45,13 @@ func newRootCmd(ui *rwi.RWI, args []string) *cobra.Command {
 	}
 	// global options (binding)
 	rootCmd.PersistentFlags().StringP("api-key", "", "", "OpenAI API key")
+	rootCmd.PersistentFlags().StringP("log-dir", "", logger.DefaultLogDir(Name), "Directory for log files")
+	rootCmd.PersistentFlags().StringP("log-level", "", "nop", fmt.Sprintf("Log level [%s]", strings.Join(logger.LevelList(), "|")))
 
 	//Bind config file
 	_ = viper.BindPFlag("api-key", rootCmd.PersistentFlags().Lookup("api-key"))
+	_ = viper.BindPFlag("log-dir", rootCmd.PersistentFlags().Lookup("log-dir"))
+	_ = viper.BindPFlag("log-level", rootCmd.PersistentFlags().Lookup("log-level"))
 	cobra.OnInitialize(initConfig)
 
 	// global options (other)
