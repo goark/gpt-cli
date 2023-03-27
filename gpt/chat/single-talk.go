@@ -2,6 +2,7 @@ package chat
 
 import (
 	"context"
+	"strings"
 
 	"github.com/goark/errs"
 	openai "github.com/sashabaranov/go-openai"
@@ -20,11 +21,12 @@ func (cctx *ChatContext) Request(ctx context.Context, msg string) (string, error
 }
 
 func (cctx *ChatContext) requestRaw(ctx context.Context, msg string) (openai.ChatCompletionResponse, error) {
+	msg = strings.TrimSpace(msg)
 	if len(msg) > 0 {
 		cctx.profile.Messages = append(cctx.profile.Messages, openai.ChatCompletionMessage{Role: openai.ChatMessageRoleUser, Content: msg})
 	}
 	cctx.Logger().Info().Interface("request", cctx.profile).Send()
-	resp, err := openai.NewClient(cctx.APIKey()).CreateChatCompletion(ctx, cctx.profile)
+	resp, err := cctx.Client().CreateChatCompletion(ctx, cctx.profile)
 	if err != nil {
 		err = errs.Wrap(err, errs.WithContext("request", cctx.profile))
 		cctx.Logger().Error().Interface("error", err).Send()

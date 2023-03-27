@@ -4,6 +4,7 @@ import (
 	"github.com/goark/errs"
 	"github.com/goark/gpt-cli/ecode"
 	"github.com/rs/zerolog"
+	"github.com/sashabaranov/go-openai"
 )
 
 type GPTContext struct {
@@ -19,9 +20,9 @@ func New(apiKey string, logger *zerolog.Logger) (*GPTContext, error) {
 	return &GPTContext{apiKey: apiKey, logger: logger}, nil
 }
 
-// ApiKey method returns API key string.
-func (gctx *GPTContext) APIKey() string {
-	return gctx.apiKey
+// Client method creates new openai.Client.
+func (gctx *GPTContext) Client() *openai.Client {
+	return openai.NewClient(gctx.apiKey)
 }
 
 // Logger method returns logger.

@@ -14,7 +14,7 @@ import (
 
 // Interactive method is chatting in interactive mode (stream access).
 func (cctx *ChatContext) Interactive(ctx context.Context, w io.Writer) error {
-	client := openai.NewClient(cctx.APIKey())
+	client := cctx.Client()
 	editor := readline.Editor{
 		Prompt: func() (int, error) { return fmt.Print("\nChat>") },
 	}
@@ -24,6 +24,10 @@ func (cctx *ChatContext) Interactive(ctx context.Context, w io.Writer) error {
 		text, err := editor.ReadLine(ctx)
 		if err != nil {
 			return errs.Wrap(err)
+		}
+		text = strings.TrimSpace(text)
+		if len(text) == 0 {
+			continue
 		}
 		if strings.EqualFold(text, "q") || strings.EqualFold(text, "quit") {
 			break

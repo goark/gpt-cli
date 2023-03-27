@@ -7,7 +7,7 @@ import (
 	"github.com/goark/errs"
 	"github.com/goark/gpt-cli/gpt"
 	"github.com/rs/zerolog"
-	openai "github.com/sashabaranov/go-openai"
+	"github.com/sashabaranov/go-openai"
 )
 
 // ChatContext is context data for chat
