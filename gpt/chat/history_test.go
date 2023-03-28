@@ -1,50 +1,56 @@
 package chat
 
 import (
-	"encoding/json"
-	"fmt"
-	"io"
-
-	"github.com/goark/errs"
-	"github.com/sashabaranov/go-openai"
+	"bytes"
+	"strings"
+	"testing"
 )
 
-func OutputHistory(r io.Reader, w io.Writer, userName, assistantName string) error {
-	hist := openai.ChatCompletionRequest{}
-	if err := json.NewDecoder(r).Decode(&hist); err != nil {
-		return errs.Wrap(err)
-	}
+var (
+	history = `{
+  "model": "gpt-3.5-turbo-0301",
+  "max_tokens": 256,
+  "temperature": 0.7,
+  "top_p": 1,
+  "n": 1,
+  "messages": [
+    {
+    "role": "user",
+    "content": "hello"
+    },
+    {
+    "role": "assistant",
+    "content": "Hi! How can I assist you today?"
+    }
+  ]
+}`
+	output = `# Chat with GPT
 
-	// Output
-	fmt.Fprintln(w, "# Chat with GPT")
-	fmt.Fprintln(w)
-	fmt.Fprintln(w, "- `model`:", hist.Model)
-	if hist.MaxTokens != 0 {
-		fmt.Fprintln(w, "- `max_tokens`:", hist.MaxTokens)
-	}
-	if hist.Temperature != 0 {
-		fmt.Fprintln(w, "- `temperature`:", hist.Temperature)
-	}
-	if hist.TopP != 0 {
-		fmt.Fprintln(w, "- `top_p`:", hist.TopP)
-	}
-	if hist.N != 0 {
-		fmt.Fprintln(w, "- `n`:", hist.N)
-	}
-	for _, msg := range hist.Messages {
-		role := msg.Role
-		switch {
-		case role == openai.ChatMessageRoleUser && len(userName) > 0:
-			role = userName
-		case role == openai.ChatMessageRoleAssistant && len(assistantName) > 0:
-			role = assistantName
+- ` + "`model`" + `: gpt-3.5-turbo-0301
+- ` + "`max_tokens`" + `: 256
+- ` + "`temperature`" + `: 0.7
+- ` + "`top_p`" + `: 1
+- ` + "`n`" + `: 1
+
+## Spiegel
+
+hello
+
+## ChatGPT
+
+Hi! How can I assist you today?
+`
+)
+
+func TestOutputHistory(t *testing.T) {
+	buf := &bytes.Buffer{}
+	if err := OutputHistory(strings.NewReader(history), buf, "Spiegel", "ChatGPT"); err != nil {
+		t.Errorf("OutputHistory() is [%v], want <nil>", err)
+	} else {
+		if got := buf.String(); got != output {
+			t.Errorf("OutputHistory() is [%v], want [%v]", got, output)
 		}
-		fmt.Fprintln(w)
-		fmt.Fprintln(w, "##", role)
-		fmt.Fprintln(w)
-		fmt.Fprintln(w, msg.Content)
 	}
-	return nil
 }
 
 /* MIT License

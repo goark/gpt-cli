@@ -1,50 +1,36 @@
-package chat
+package gpt
 
 import (
-	"encoding/json"
-	"fmt"
-	"io"
+	"errors"
+	"testing"
 
-	"github.com/goark/errs"
-	"github.com/sashabaranov/go-openai"
+	"github.com/goark/gpt-cli/ecode"
+	"github.com/rs/zerolog"
 )
 
-func OutputHistory(r io.Reader, w io.Writer, userName, assistantName string) error {
-	hist := openai.ChatCompletionRequest{}
-	if err := json.NewDecoder(r).Decode(&hist); err != nil {
-		return errs.Wrap(err)
-	}
+var notLogger = zerolog.Nop()
 
-	// Output
-	fmt.Fprintln(w, "# Chat with GPT")
-	fmt.Fprintln(w)
-	fmt.Fprintln(w, "- `model`:", hist.Model)
-	if hist.MaxTokens != 0 {
-		fmt.Fprintln(w, "- `max_tokens`:", hist.MaxTokens)
+func TestNew(t *testing.T) {
+	testCases := []struct {
+		apiKey       string
+		cacheDir     string
+		logger       *zerolog.Logger
+		cacheDirWant string
+		err          error
+	}{
+		{apiKey: "", cacheDir: "", logger: &notLogger, cacheDirWant: ".", err: ecode.ErrAPIKey},
+		{apiKey: "foo", cacheDir: "", logger: &notLogger, cacheDirWant: ".", err: nil},
+		{apiKey: "foo", cacheDir: "bar", logger: &notLogger, cacheDirWant: "bar", err: nil},
 	}
-	if hist.Temperature != 0 {
-		fmt.Fprintln(w, "- `temperature`:", hist.Temperature)
-	}
-	if hist.TopP != 0 {
-		fmt.Fprintln(w, "- `top_p`:", hist.TopP)
-	}
-	if hist.N != 0 {
-		fmt.Fprintln(w, "- `n`:", hist.N)
-	}
-	for _, msg := range hist.Messages {
-		role := msg.Role
-		switch {
-		case role == openai.ChatMessageRoleUser && len(userName) > 0:
-			role = userName
-		case role == openai.ChatMessageRoleAssistant && len(assistantName) > 0:
-			role = assistantName
+	for _, tc := range testCases {
+		if cctx, err := New(tc.apiKey, tc.cacheDir, tc.logger); !errors.Is(err, tc.err) {
+			t.Errorf("New() is [%v], want [%v]", err, tc.err)
+		} else if err == nil {
+			if got := cctx.CacheDir(); got != tc.cacheDirWant {
+				t.Errorf("CacheDir() is [%v], want [%v]", got, tc.cacheDirWant)
+			}
 		}
-		fmt.Fprintln(w)
-		fmt.Fprintln(w, "##", role)
-		fmt.Fprintln(w)
-		fmt.Fprintln(w, msg.Content)
 	}
-	return nil
 }
 
 /* MIT License

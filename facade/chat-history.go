@@ -1,6 +1,9 @@
 package facade
 
 import (
+	"os"
+
+	"github.com/goark/errs"
 	"github.com/goark/gocli/rwi"
 	"github.com/goark/gpt-cli/gpt/chat"
 	"github.com/spf13/cobra"
@@ -28,8 +31,14 @@ func newHistoryCmd(ui *rwi.RWI) *cobra.Command {
 				return debugPrint(ui, err)
 			}
 
+			file, err := os.Open(histPath)
+			if err != nil {
+				return debugPrint(ui, errs.Wrap(err, errs.WithContext("histPath", histPath)))
+			}
+			defer file.Close()
+
 			// Output history
-			if err := chat.OutputHistory(histPath, userName, assistantName, ui.Writer()); err != nil {
+			if err := chat.OutputHistory(file, ui.Writer(), userName, assistantName); err != nil {
 				return debugPrint(ui, err)
 			}
 			return nil
