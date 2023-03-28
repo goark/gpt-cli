@@ -1,51 +1,39 @@
 package chat
 
 import (
-	"encoding/json"
+	"bytes"
 	"fmt"
 	"io"
+	"os"
+	"strings"
 
 	"github.com/goark/errs"
-	"github.com/sashabaranov/go-openai"
+	"github.com/goark/gpt-cli/ecode"
 )
 
-// OutputHistory function converts markdown like text data from history data.
-func OutputHistory(r io.Reader, w io.Writer, userName, assistantName string) error {
-	hist := openai.ChatCompletionRequest{}
-	if err := json.NewDecoder(r).Decode(&hist); err != nil {
-		return errs.Wrap(err)
+// AttachFile function converts markdown like text from text file data
+func AttachFile(path string) (string, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return "", errs.Wrap(err, errs.WithContext("path", path))
 	}
+	defer file.Close()
 
-	// Output
-	fmt.Fprintln(w, "# Chat with GPT")
-	fmt.Fprintln(w)
-	fmt.Fprintln(w, "- `model`:", hist.Model)
-	if hist.MaxTokens != 0 {
-		fmt.Fprintln(w, "- `max_tokens`:", hist.MaxTokens)
+	b, err := io.ReadAll(file)
+	if err != nil {
+		return "", errs.Wrap(err, errs.WithContext("path", path))
 	}
-	if hist.Temperature != 0 {
-		fmt.Fprintln(w, "- `temperature`:", hist.Temperature)
+	if bytes.Contains(b, []byte{0}) {
+		return "", errs.Wrap(ecode.ErrBinary, errs.WithContext("path", path))
 	}
-	if hist.TopP != 0 {
-		fmt.Fprintln(w, "- `top_p`:", hist.TopP)
+	builder := &strings.Builder{}
+	fmt.Fprintf(builder, "Path: %s\n\n", path)
+	fmt.Fprintln(builder, "```")
+	if _, err := io.Copy(builder, bytes.NewReader(b)); err != nil {
+		return "", errs.Wrap(err, errs.WithContext("path", path))
 	}
-	if hist.N != 0 {
-		fmt.Fprintln(w, "- `n`:", hist.N)
-	}
-	for _, msg := range hist.Messages {
-		role := msg.Role
-		switch {
-		case role == openai.ChatMessageRoleUser && len(userName) > 0:
-			role = userName
-		case role == openai.ChatMessageRoleAssistant && len(assistantName) > 0:
-			role = assistantName
-		}
-		fmt.Fprintln(w)
-		fmt.Fprintln(w, "##", role)
-		fmt.Fprintln(w)
-		fmt.Fprintln(w, msg.Content)
-	}
-	return nil
+	fmt.Fprintln(builder, "\n```")
+	return builder.String(), nil
 }
 
 /* MIT License

@@ -8,6 +8,7 @@ var (
 	ErrAPIKey      = errors.New("no OpenAI API key")
 	ErrStream      = errors.New("error in response stream")
 	ErrNoContent   = errors.New("no content")
+	ErrBinary      = errors.New("binary file")
 )
 
 /* MIT License

@@ -1,7 +1,6 @@
 package facade
 
 import (
-	"github.com/atotto/clipboard"
 	"github.com/goark/errs"
 	"github.com/goark/gocli/rwi"
 	"github.com/goark/gpt-cli/gpt/chat"
@@ -9,36 +8,19 @@ import (
 )
 
 // newVersionCmd returns cobra.Command instance for show sub-command
-func newChatCmd(ui *rwi.RWI) *cobra.Command {
-	chatCmd := &cobra.Command{
-		Use:     "chat",
-		Aliases: []string{"c"},
-		Short:   "Chat with GPT-x",
-		Long:    "Chat with GPT-x, input from standard input.",
+func newInteractiveCmd(ui *rwi.RWI) *cobra.Command {
+	interactiveCmd := &cobra.Command{
+		Use:     "interactive",
+		Aliases: []string{"i"},
+		Short:   "Interactive mode",
+		Long:    "Interactive mode in chat.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Global options
 			opts, err := getOptions()
 			if err != nil {
 				return debugPrint(ui, err)
 			}
-			// local options
-			clipboardFlag, err := cmd.Flags().GetBool("clipboard")
-			if err != nil {
-				return debugPrint(ui, err)
-			}
-			prepPath, err := cmd.Flags().GetString("prepare-file")
-			if err != nil {
-				return debugPrint(ui, err)
-			}
-			attaches, err := cmd.Flags().GetStringSlice("attach-file")
-			if err != nil {
-				return debugPrint(ui, err)
-			}
-			paths, err := getFiles(attaches)
-			if err != nil {
-				return debugPrint(ui, err)
-			}
-			msg, err := cmd.Flags().GetString("message")
+			profilePath, err := cmd.Flags().GetString("profile")
 			if err != nil {
 				return debugPrint(ui, err)
 			}
@@ -48,38 +30,14 @@ func newChatCmd(ui *rwi.RWI) *cobra.Command {
 			}
 
 			// create Chat context
-			cctx, err := chat.New(opts.APIKey, opts.CacheDir, opts.Logger, prepPath, savePath)
+			cctx, err := chat.New(opts.APIKey, opts.CacheDir, opts.Logger, profilePath, savePath)
 			if err != nil {
 				opts.Logger.Error().Interface("error", errs.Wrap(err)).Send()
 				return debugPrint(ui, err)
 			}
 
-			// single mode
-			var msgs []string = []string{}
-			if len(msg) > 0 {
-				msgs = append(msgs, msg)
-			}
-			if clipboardFlag {
-				text, err := clipboard.ReadAll()
-				if err != nil {
-					return debugPrint(ui, err)
-				}
-				if len(text) > 0 {
-					msgs = append(msgs, text)
-				}
-			}
-			for _, path := range paths {
-				msg, err := chat.AttachFile(path)
-				if err != nil {
-					return debugPrint(ui, err)
-				}
-				msgs = append(msgs, msg)
-			}
-			respMsg, err := cctx.Request(cmd.Context(), msgs)
-			if len(respMsg) > 0 {
-				_ = debugPrint(ui, ui.Outputln(respMsg))
-			}
-			if err != nil {
+			// interactive mode
+			if err := cctx.Interactive(cmd.Context(), ui.Writer()); err != nil {
 				return debugPrint(ui, err)
 			}
 			if len(cctx.SavePath()) > 0 {
@@ -88,18 +46,10 @@ func newChatCmd(ui *rwi.RWI) *cobra.Command {
 			return nil
 		},
 	}
-	chatCmd.Flags().BoolP("clipboard", "c", false, "Input message from clipboard")
-	chatCmd.Flags().StringP("message", "m", "", "Chat message")
-	chatCmd.Flags().StringP("prepare-file", "p", "", "Path of prepare file (JSON format)")
-	chatCmd.Flags().StringSliceP("attach-file", "a", nil, "Path of attach files (text file only)")
-	chatCmd.Flags().StringP("save-file", "f", "", "Path of save file (JSON format)")
+	interactiveCmd.Flags().StringP("profile", "p", "", "Path of profile file (JSON format)")
+	interactiveCmd.Flags().StringP("save-file", "f", "", "Path of save file (JSON format)")
 
-	chatCmd.AddCommand(
-		newHistoryCmd(ui),
-		newInteractiveCmd(ui),
-	)
-
-	return chatCmd
+	return interactiveCmd
 }
 
 /* MIT License
