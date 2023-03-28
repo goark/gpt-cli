@@ -90,6 +90,10 @@ func newChatCmd(ui *rwi.RWI) *cobra.Command {
 	chatCmd.Flags().StringP("profile", "p", "", "Path of profile file (JSON format)")
 	chatCmd.Flags().StringP("save-file", "f", "", "Path of save file (JSON format)")
 
+	chatCmd.AddCommand(
+		newHistoryCmd(ui),
+	)
+
 	return chatCmd
 }
 

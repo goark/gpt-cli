@@ -51,9 +51,13 @@ Chat with GPT-x, input from standard input.
 
 Usage:
   gpt-cli chat [flags]
+  gpt-cli chat [command]
 
 Aliases:
   chat, c
+
+Available Commands:
+  history     Print chat history
 
 Flags:
   -c, --clipboard          Input message from clipboard
@@ -64,13 +68,15 @@ Flags:
 
 Global Flags:
       --api-key string     OpenAI API key
-      --config string      Config file (default /home/username/.config/gpt-cli/config.yaml)
+      --config string      Config file (default /home/spiegel/.config/gpt-cli/config.yaml)
       --debug              for debug
-      --log-dir string     Directory for log files (default "/home/username/.cache/gpt-cli")
+      --log-dir string     Directory for log files (default "/home/spiegel/.cache/gpt-cli")
       --log-level string   Log level [nop|error|warn|info|debug|trace] (default "nop")
+
+Use "gpt-cli chat [command] --help" for more information about a command.
 ```
 
-### Input form Standard input
+### Input from Standard input
 
 ```
 $ echo hello | gpt-cli c --api-key "your-api-key"
@@ -110,7 +116,54 @@ Chat> q
 save to /home/username/.cache/gpt-cli/chat.2788390222.json
 ```
 
-## Configuration to $XDG_CONFIG_HOME/gpt-cli/config.yaml file
+### Output chat history
+
+```
+$ gpt-cli chat history -h
+Print chat history.
+
+Usage:
+  gpt-cli chat history [flags]
+
+Aliases:
+  history, hist, h
+
+Flags:
+  -a, --assistant-name string   Assistant name (display name)
+  -h, --help                    help for history
+  -f, --history-file string     Path of history file (JSON format)
+  -u, --user-name string        User name (display name)
+
+Global Flags:
+      --api-key string     OpenAI API key
+      --config string      Config file (default /home/spiegel/.config/gpt-cli/config.yaml)
+      --debug              for debug
+      --log-dir string     Directory for log files (default "/home/spiegel/.cache/gpt-cli")
+      --log-level string   Log level [nop|error|warn|info|debug|trace] (default "nop")
+```
+
+```
+$ echo hello | gpt-cli c --api-key "your-api-key"
+Hello! How can I help you today?
+
+save to /home/username/.cache/gpt-cli/chat.2133582955.json
+
+$ gpt-cli c h -u Spiegel -a ChatGPT -f /home/username/.cache/gpt-cli/chat.2133582955.json
+# Chat with GPT
+
+- `model`: gpt-3.5-turbo-0301
+
+## Spiegel
+
+hello
+
+## ChatGPT
+
+Hi! How can I assist you today?
+```
+
+
+## Configuration in $XDG_CONFIG_HOME/gpt-cli/config.yaml file
 
 ```yaml
 api-key: your_api_key_string
