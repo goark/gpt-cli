@@ -22,7 +22,7 @@ func (cctx *ChatContext) Interactive(ctx context.Context, w io.Writer) error {
 		Prompt: func() (int, error) { return fmt.Print("\nChat>") },
 	}
 	fmt.Fprintln(w, "Input 'q' or 'quit' to stop")
-	cctx.profile.Stream = true
+	cctx.prepare.Stream = true
 	for {
 		text, err := editor.ReadLine(ctx)
 		if err != nil {
@@ -35,19 +35,19 @@ func (cctx *ChatContext) Interactive(ctx context.Context, w io.Writer) error {
 		if strings.EqualFold(text, "q") || strings.EqualFold(text, "quit") {
 			break
 		}
-		cctx.profile.Messages = append(cctx.profile.Messages, openai.ChatCompletionMessage{Role: openai.ChatMessageRoleUser, Content: text})
+		_ = cctx.AppendUserMessages([]string{text})
 		resText, err := cctx.stream(ctx, client, w)
 		if err != nil {
 			return errs.Wrap(err)
 		}
-		cctx.profile.Messages = append(cctx.profile.Messages, openai.ChatCompletionMessage{Role: openai.ChatMessageRoleAssistant, Content: resText})
+		_ = cctx.AppendAssistantMessages([]string{resText})
 	}
 	return cctx.Save()
 }
 
 func (cctx *ChatContext) stream(ctx context.Context, client *openai.Client, w io.Writer) (string, error) {
-	cctx.Logger().Info().Interface("request", cctx.profile).Send()
-	stream, err := client.CreateChatCompletionStream(ctx, cctx.profile)
+	cctx.Logger().Info().Interface("request", cctx.prepare).Send()
+	stream, err := client.CreateChatCompletionStream(ctx, cctx.prepare)
 	if err != nil {
 		err = errs.Wrap(err)
 		cctx.Logger().Error().Interface("error", err).Send()

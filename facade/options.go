@@ -1,6 +1,9 @@
 package facade
 
 import (
+	"path/filepath"
+	"sort"
+
 	"github.com/goark/errs"
 	"github.com/goark/gocli/cache"
 	"github.com/goark/gpt-cli/logger"
@@ -27,6 +30,28 @@ func getOptions() (*options, error) {
 		CacheDir: cache.Dir(Name),
 		Logger:   logger,
 	}, nil
+}
+
+func getFiles(ss []string) ([]string, error) {
+	paths := map[string]bool{}
+	for _, s := range ss {
+		pp, err := filepath.Glob(s)
+		if err != nil {
+			return nil, errs.Wrap(err, errs.WithContext("path", s))
+		}
+		for _, p := range pp {
+			paths[p] = true
+		}
+	}
+	if len(paths) > 0 {
+		plist := make([]string, 0, len(paths))
+		for k := range paths {
+			plist = append(plist, k)
+		}
+		sort.Strings(plist)
+		return plist, nil
+	}
+	return []string{}, nil
 }
 
 /* MIT License

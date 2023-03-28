@@ -58,34 +58,116 @@ Aliases:
 
 Available Commands:
   history     Print chat history
+  interactive Interactive mode
 
 Flags:
-  -c, --clipboard          Input message from clipboard
-  -h, --help               help for chat
-  -i, --interactive        Interactive mode
-  -p, --profile string     Path of profile file (JSON format)
-  -f, --save-file string   Path of save file (JSON format)
+  -a, --attach-file strings   Path of attach files (text file only)
+  -c, --clipboard             Input message from clipboard
+  -h, --help                  help for chat
+  -m, --message string        Chat message
+  -p, --prepare-file string   Path of prepare file (JSON format)
+  -f, --save-file string      Path of save file (JSON format)
 
 Global Flags:
       --api-key string     OpenAI API key
-      --config string      Config file (default /home/spiegel/.config/gpt-cli/config.yaml)
+      --config string      Config file (default /home/username/.config/gpt-cli/config.yaml)
       --debug              for debug
-      --log-dir string     Directory for log files (default "/home/spiegel/.cache/gpt-cli")
+      --log-dir string     Directory for log files (default "/home/username/.cache/gpt-cli")
       --log-level string   Log level [nop|error|warn|info|debug|trace] (default "nop")
 
 Use "gpt-cli chat [command] --help" for more information about a command.
 ```
 
-### Input from Standard input
-
 ```
-$ echo hello | gpt-cli c --api-key "your-api-key"
+$ gpt-cli c --api-key "your-api-key" -m "hello"
 Hello! How can I help you today?
 
 save to /home/username/.cache/gpt-cli/chat.2133582955.json
 ```
 
+#### Attach file in chat
+
+```
+$ cat sample/hello.go 
+package main
+
+import "fmt"
+
+func main() {
+	fmt.Println("Hello, world.")
+}
+
+$ gpt-cli c -a sample/hello.go -m "Summarize the source code below."
+The source code is a basic program in the Go programming language that prints the text "Hello, world." to the console. It includes the standard library package "fmt" and a main function that utilizes the "Println" function from the "fmt" package.
+
+save to /home/username/.cache/gpt-cli/chat.3658387869.json
+```
+
+### Output chat history
+
+```
+$ gpt-cli chat history -h
+Print chat history.
+
+Usage:
+  gpt-cli chat history [flags]
+
+Aliases:
+  history, hist, h
+
+Flags:
+  -a, --assistant-name string   Assistant name (display name)
+  -h, --help                    help for history
+  -f, --history-file string     Path of history file (JSON format)
+  -u, --user-name string        User name (display name)
+
+Global Flags:
+      --api-key string     OpenAI API key
+      --config string      Config file (default /home/username/.config/gpt-cli/config.yaml)
+      --debug              for debug
+      --log-dir string     Directory for log files (default "/home/username/.cache/gpt-cli")
+      --log-level string   Log level [nop|error|warn|info|debug|trace] (default "nop")
+```
+
+```
+$ gpt-cli c h -u Spiegel -a ChatGPT -f /home/spiegel/.cache/gpt-cli/chat.2133582955.json
+# Chat with GPT
+
+- `model`: gpt-3.5-turbo-0301
+
+## Spiegel
+
+hello
+
+## ChatGPT
+
+Hello! How can I help you today?
+```
+
 ### Interactive mode
+
+```
+$ gpt-cli chat interactive -h
+nteractive mode in chat.
+
+Usage:
+  gpt-cli chat interactive [flags]
+
+Aliases:
+  interactive, i
+
+Flags:
+  -h, --help               help for interactive
+  -p, --profile string     Path of profile file (JSON format)
+  -f, --save-file string   Path of save file (JSON format)
+
+Global Flags:
+      --api-key string     OpenAI API key
+      --config string      Config file (default /home/username/.config/gpt-cli/config.yaml)
+      --debug              for debug
+      --log-dir string     Directory for log files (default "/home/username/.cache/gpt-cli")
+      --log-level string   Log level [nop|error|warn|info|debug|trace] (default "nop")
+```
 
 ```
 $ gpt-cli c -i --api-key "your-api-key"
@@ -116,53 +198,6 @@ Chat> q
 save to /home/username/.cache/gpt-cli/chat.2788390222.json
 ```
 
-### Output chat history
-
-```
-$ gpt-cli chat history -h
-Print chat history.
-
-Usage:
-  gpt-cli chat history [flags]
-
-Aliases:
-  history, hist, h
-
-Flags:
-  -a, --assistant-name string   Assistant name (display name)
-  -h, --help                    help for history
-  -f, --history-file string     Path of history file (JSON format)
-  -u, --user-name string        User name (display name)
-
-Global Flags:
-      --api-key string     OpenAI API key
-      --config string      Config file (default /home/spiegel/.config/gpt-cli/config.yaml)
-      --debug              for debug
-      --log-dir string     Directory for log files (default "/home/spiegel/.cache/gpt-cli")
-      --log-level string   Log level [nop|error|warn|info|debug|trace] (default "nop")
-```
-
-```
-$ echo hello | gpt-cli c --api-key "your-api-key"
-Hello! How can I help you today?
-
-save to /home/username/.cache/gpt-cli/chat.2133582955.json
-
-$ gpt-cli c h -u Spiegel -a ChatGPT -f /home/username/.cache/gpt-cli/chat.2133582955.json
-# Chat with GPT
-
-- `model`: gpt-3.5-turbo-0301
-
-## Spiegel
-
-hello
-
-## ChatGPT
-
-Hi! How can I assist you today?
-```
-
-
 ## Configuration in $XDG_CONFIG_HOME/gpt-cli/config.yaml file
 
 ```yaml
@@ -170,6 +205,14 @@ api-key: your_api_key_string
 log-dir: /var/log/gpt-cli
 log-level: info
 ```
+
+```
+$ gpt-cli c -m "hello"
+Hello! How can I help you today?
+
+save to /home/username/.cache/gpt-cli/chat.2133582955.json
+```
+
 
 ## Modules Requirement Graph
 
