@@ -130,7 +130,7 @@ Global Flags:
 ```
 
 ```
-$ gpt-cli c h -u Spiegel -a ChatGPT -f /home/spiegel/.cache/gpt-cli/chat.2133582955.json
+$ gpt-cli c h -u Spiegel -a ChatGPT -f /home/username/.cache/gpt-cli/chat.2133582955.json
 # Chat with GPT
 
 - `model`: gpt-3.5-turbo-0301
@@ -148,7 +148,7 @@ Hello! How can I help you today?
 
 ```
 $ gpt-cli chat interactive -h
-nteractive mode in chat.
+Interactive mode in chat.
 
 Usage:
   gpt-cli chat interactive [flags]
@@ -170,7 +170,8 @@ Global Flags:
 ```
 
 ```
-$ gpt-cli c -i --api-key "your-api-key"
+$ gpt-cli c i --api-key "your-api-key"
+Interactive mode in chat.
 
 Chat> こんにちは
 
