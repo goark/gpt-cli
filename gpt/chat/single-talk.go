@@ -8,8 +8,8 @@ import (
 	"github.com/goark/gpt-cli/ecode"
 )
 
-// Request requesta OpenAI Chat completion, and returns response message. (REST access)
-func (cctx *ChatContext) Request(ctx context.Context, streamMode bool, msgs []string, w io.Writer) error {
+// Request requesta OpenAI Chat completion, and returns response message.
+func (cctx *ChatContext) Request(ctx context.Context, rest bool, msgs []string, w io.Writer) error {
 	if cctx == nil {
 		return errs.Wrap(ecode.ErrNullPointer)
 	}
@@ -18,10 +18,10 @@ func (cctx *ChatContext) Request(ctx context.Context, streamMode bool, msgs []st
 	}
 	var err error
 	var resText string
-	if streamMode {
-		resText, err = cctx.stream(ctx, cctx.Client(), w)
-	} else {
+	if rest {
 		resText, err = cctx.rest(ctx, cctx.Client(), w)
+	} else {
+		resText, err = cctx.stream(ctx, cctx.Client(), w)
 	}
 	if err != nil {
 		return errs.Wrap(err)

@@ -67,7 +67,7 @@ Flags:
   -m, --message string        Chat message
   -o, --output-file string    Path of save file (JSON format)
   -p, --prepare-file string   Path of prepare file (JSON format)
-      --stream-mode           Output from GPT by Stream mode
+      --rest                  Output from GPT by no streaming
 
 Global Flags:
       --api-key string     OpenAI API key
