@@ -38,7 +38,7 @@ Flags:
       --debug              for debug
   -h, --help               help for gpt-cli
       --log-dir string     Directory for log files (default "/home/username/.cache/gpt-cli")
-      --log-level string   log level [nop|error|warn|info|debug|trace] (default "nop")
+      --log-level string   Log level [nop|error|warn|info|debug|trace] (default "nop")
 
 Use "gpt-cli [command] --help" for more information about a command.
 ```
@@ -65,8 +65,9 @@ Flags:
   -c, --clipboard             Input message from clipboard
   -h, --help                  help for chat
   -m, --message string        Chat message
+  -o, --output-file string    Path of save file (JSON format)
   -p, --prepare-file string   Path of prepare file (JSON format)
-  -f, --save-file string      Path of save file (JSON format)
+      --stream-mode           Output from GPT by Stream mode
 
 Global Flags:
       --api-key string     OpenAI API key
@@ -157,9 +158,10 @@ Aliases:
   interactive, i
 
 Flags:
-  -h, --help               help for interactive
-  -p, --profile string     Path of profile file (JSON format)
-  -f, --save-file string   Path of save file (JSON format)
+  -h, --help                  help for interactive
+  -m, --multi-line            Editing with multi-line mode
+  -o, --output-file string    Path of save file (JSON format)
+  -p, --prepare-file string   Path of prepare file (JSON format)
 
 Global Flags:
       --api-key string     OpenAI API key

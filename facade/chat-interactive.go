@@ -20,25 +20,35 @@ func newInteractiveCmd(ui *rwi.RWI) *cobra.Command {
 			if err != nil {
 				return debugPrint(ui, err)
 			}
-			profilePath, err := cmd.Flags().GetString("profile")
+			prepPath, err := cmd.Flags().GetString("prepare-file")
 			if err != nil {
 				return debugPrint(ui, err)
 			}
-			savePath, err := cmd.Flags().GetString("save-file")
+			savePath, err := cmd.Flags().GetString("output-file")
+			if err != nil {
+				return debugPrint(ui, err)
+			}
+			multiLine, err := cmd.Flags().GetBool("multi-line")
 			if err != nil {
 				return debugPrint(ui, err)
 			}
 
 			// create Chat context
-			cctx, err := chat.New(opts.APIKey, opts.CacheDir, opts.Logger, profilePath, savePath)
+			cctx, err := chat.New(opts.APIKey, opts.CacheDir, opts.Logger, prepPath, savePath)
 			if err != nil {
 				opts.Logger.Error().Interface("error", errs.Wrap(err)).Send()
 				return debugPrint(ui, err)
 			}
 
-			// interactive mode
-			if err := cctx.Interactive(cmd.Context(), ui.Writer()); err != nil {
-				return debugPrint(ui, err)
+			// kicking interactive mode
+			if multiLine {
+				if err := cctx.InteractiveMulti(cmd.Context(), ui.Writer()); err != nil {
+					return debugPrint(ui, err)
+				}
+			} else {
+				if err := cctx.Interactive(cmd.Context(), ui.Writer()); err != nil {
+					return debugPrint(ui, err)
+				}
 			}
 			if len(cctx.SavePath()) > 0 {
 				return ui.Outputln("\nsave to", cctx.SavePath())
@@ -46,8 +56,9 @@ func newInteractiveCmd(ui *rwi.RWI) *cobra.Command {
 			return nil
 		},
 	}
-	interactiveCmd.Flags().StringP("profile", "p", "", "Path of profile file (JSON format)")
-	interactiveCmd.Flags().StringP("save-file", "f", "", "Path of save file (JSON format)")
+	interactiveCmd.Flags().StringP("prepare-file", "p", "", "Path of prepare file (JSON format)")
+	interactiveCmd.Flags().StringP("output-file", "o", "", "Path of save file (JSON format)")
+	interactiveCmd.Flags().BoolP("multi-line", "m", false, "Editing with multi-line mode")
 
 	return interactiveCmd
 }

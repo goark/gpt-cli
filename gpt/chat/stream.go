@@ -2,32 +2,55 @@ package chat
 
 import (
 	"context"
+	"fmt"
 	"io"
+	"strings"
 
 	"github.com/goark/errs"
 	"github.com/goark/gpt-cli/ecode"
+	"github.com/sashabaranov/go-openai"
 )
 
-// Request requesta OpenAI Chat completion, and returns response message. (REST access)
-func (cctx *ChatContext) Request(ctx context.Context, streamMode bool, msgs []string, w io.Writer) error {
-	if cctx == nil {
-		return errs.Wrap(ecode.ErrNullPointer)
-	}
-	if err := cctx.AppendUserMessages(msgs); err != nil {
-		return errs.Wrap(err)
-	}
-	var err error
-	var resText string
-	if streamMode {
-		resText, err = cctx.stream(ctx, cctx.Client(), w)
-	} else {
-		resText, err = cctx.rest(ctx, cctx.Client(), w)
-	}
+func (cctx *ChatContext) stream(ctx context.Context, client *openai.Client, w io.Writer) (string, error) {
+	cctx.Logger().Info().Interface("request", cctx.prepare).Send()
+	stream, err := client.CreateChatCompletionStream(ctx, cctx.prepare)
 	if err != nil {
-		return errs.Wrap(err)
+		err = errs.Wrap(err)
+		cctx.Logger().Error().Interface("error", err).Send()
+		return "", err
 	}
-	_ = cctx.AppendAssistantMessages([]string{resText})
-	return cctx.Save()
+	defer stream.Close()
+
+	builder := strings.Builder{}
+	fmt.Fprintln(w)
+	for {
+		resp, err := stream.Recv()
+		if err != nil {
+			if errs.Is(err, io.EOF) {
+				break
+			}
+			err = errs.Wrap(ecode.ErrStream, errs.WithCause(err))
+			cctx.Logger().Error().Interface("error", err).Send()
+			return "", err
+		}
+		cctx.Logger().Info().Interface("response", resp).Send()
+		if len(resp.Choices) > 0 {
+			if delta := resp.Choices[0].Delta.Content; len(delta) > 0 {
+				if _, err := builder.WriteString(delta); err != nil {
+					err = errs.Wrap(err)
+					cctx.Logger().Error().Interface("error", err).Send()
+					return "", err
+				}
+				if _, err := io.WriteString(w, delta); err != nil {
+					err = errs.Wrap(err)
+					cctx.Logger().Error().Interface("error", err).Send()
+					return "", err
+				}
+			}
+		}
+	}
+	fmt.Fprintln(w)
+	return builder.String(), nil
 }
 
 /* MIT License
