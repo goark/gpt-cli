@@ -8,8 +8,8 @@ import (
 
 	"github.com/goark/errs"
 	"github.com/goark/gpt-cli/ecode"
+	"github.com/hymkor/go-multiline-ny"
 	"github.com/nyaosorg/go-readline-ny"
-	openai "github.com/sashabaranov/go-openai"
 )
 
 // Interactive method is chatting in interactive mode (stream access).
@@ -45,46 +45,48 @@ func (cctx *ChatContext) Interactive(ctx context.Context, w io.Writer) error {
 	return cctx.Save()
 }
 
-func (cctx *ChatContext) stream(ctx context.Context, client *openai.Client, w io.Writer) (string, error) {
-	cctx.Logger().Info().Interface("request", cctx.prepare).Send()
-	stream, err := client.CreateChatCompletionStream(ctx, cctx.prepare)
-	if err != nil {
-		err = errs.Wrap(err)
-		cctx.Logger().Error().Interface("error", err).Send()
-		return "", err
+// InteractiveMulti method is chatting in interactive mode with multiline editing (stream access).
+func (cctx *ChatContext) InteractiveMulti(ctx context.Context, w io.Writer) error {
+	if cctx == nil {
+		return errs.Wrap(ecode.ErrNullPointer)
 	}
-	defer stream.Close()
+	client := cctx.Client()
+	var editor multiline.Editor
+	editor.SetPrompt(func(w io.Writer, lnum int) (int, error) {
+		return fmt.Fprintf(w, "Chat[%d] ", lnum+1)
+	})
 
-	builder := strings.Builder{}
-	fmt.Fprintln(w)
+	fmt.Fprintln(w, "Input 'Ctrl+J' or 'Ctrl+Enter' to submit message")
+	fmt.Fprintln(w, "Input 'Ctrl+D' with no chars to stop")
+	fmt.Fprintln(w, "      or input text \"q\" or \"quit\" and submit to stop")
+	cctx.prepare.Stream = true
 	for {
-		resp, err := stream.Recv()
+		lines, err := editor.Read(ctx)
 		if err != nil {
 			if errs.Is(err, io.EOF) {
 				break
 			}
-			err = errs.Wrap(ecode.ErrStream, errs.WithCause(err))
-			cctx.Logger().Error().Interface("error", err).Send()
-			return "", err
+			return errs.Wrap(err)
 		}
-		cctx.Logger().Info().Interface("response", resp).Send()
-		if len(resp.Choices) > 0 {
-			if delta := resp.Choices[0].Delta.Content; len(delta) > 0 {
-				if _, err := builder.WriteString(delta); err != nil {
-					err = errs.Wrap(err)
-					cctx.Logger().Error().Interface("error", err).Send()
-					return "", err
-				}
-				if _, err := io.WriteString(w, delta); err != nil {
-					err = errs.Wrap(err)
-					cctx.Logger().Error().Interface("error", err).Send()
-					return "", err
-				}
-			}
+		if len(lines) == 0 {
+			continue
 		}
+		text := strings.TrimSpace(strings.Join(lines, "\n"))
+		if len(text) == 0 {
+			continue
+		}
+		if strings.EqualFold(text, "q") || strings.EqualFold(text, "quit") {
+			break
+		}
+
+		_ = cctx.AppendUserMessages([]string{text})
+		resText, err := cctx.stream(ctx, client, w)
+		if err != nil {
+			return errs.Wrap(err)
+		}
+		_ = cctx.AppendAssistantMessages([]string{resText})
 	}
-	fmt.Fprintln(w)
-	return builder.String(), nil
+	return cctx.Save()
 }
 
 /* MIT License

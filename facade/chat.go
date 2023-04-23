@@ -42,7 +42,11 @@ func newChatCmd(ui *rwi.RWI) *cobra.Command {
 			if err != nil {
 				return debugPrint(ui, err)
 			}
-			savePath, err := cmd.Flags().GetString("save-file")
+			savePath, err := cmd.Flags().GetString("output-file")
+			if err != nil {
+				return debugPrint(ui, err)
+			}
+			streamMode, err := cmd.Flags().GetBool("stream-mode")
 			if err != nil {
 				return debugPrint(ui, err)
 			}
@@ -54,11 +58,12 @@ func newChatCmd(ui *rwi.RWI) *cobra.Command {
 				return debugPrint(ui, err)
 			}
 
-			// single mode
 			var msgs []string = []string{}
+			// message from command-line
 			if len(msg) > 0 {
 				msgs = append(msgs, msg)
 			}
+			// message from clipboard
 			if clipboardFlag {
 				text, err := clipboard.ReadAll()
 				if err != nil {
@@ -68,6 +73,7 @@ func newChatCmd(ui *rwi.RWI) *cobra.Command {
 					msgs = append(msgs, text)
 				}
 			}
+			// messages from attached files
 			for _, path := range paths {
 				msg, err := chat.AttachFile(path)
 				if err != nil {
@@ -75,11 +81,9 @@ func newChatCmd(ui *rwi.RWI) *cobra.Command {
 				}
 				msgs = append(msgs, msg)
 			}
-			respMsg, err := cctx.Request(cmd.Context(), msgs)
-			if len(respMsg) > 0 {
-				_ = debugPrint(ui, ui.Outputln(respMsg))
-			}
-			if err != nil {
+
+			// kicking single mode
+			if err := cctx.Request(cmd.Context(), streamMode, msgs, ui.Writer()); err != nil {
 				return debugPrint(ui, err)
 			}
 			if len(cctx.SavePath()) > 0 {
@@ -89,10 +93,11 @@ func newChatCmd(ui *rwi.RWI) *cobra.Command {
 		},
 	}
 	chatCmd.Flags().BoolP("clipboard", "c", false, "Input message from clipboard")
+	chatCmd.Flags().BoolP("stream-mode", "", false, "Output from GPT by Stream mode")
 	chatCmd.Flags().StringP("message", "m", "", "Chat message")
 	chatCmd.Flags().StringP("prepare-file", "p", "", "Path of prepare file (JSON format)")
 	chatCmd.Flags().StringSliceP("attach-file", "a", nil, "Path of attach files (text file only)")
-	chatCmd.Flags().StringP("save-file", "f", "", "Path of save file (JSON format)")
+	chatCmd.Flags().StringP("output-file", "o", "", "Path of save file (JSON format)")
 
 	chatCmd.AddCommand(
 		newHistoryCmd(ui),
