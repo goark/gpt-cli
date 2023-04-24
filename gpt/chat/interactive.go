@@ -53,7 +53,7 @@ func (cctx *ChatContext) InteractiveMulti(ctx context.Context, w io.Writer) erro
 	client := cctx.Client()
 	var editor multiline.Editor
 	editor.SetPrompt(func(w io.Writer, lnum int) (int, error) {
-		return fmt.Fprintf(w, "Chat[%d] ", lnum+1)
+		return fmt.Fprintf(w, "Chat:%2d>", lnum+1)
 	})
 
 	fmt.Fprintln(w, "Input 'Ctrl+J' or 'Ctrl+Enter' to submit message")
@@ -69,10 +69,12 @@ func (cctx *ChatContext) InteractiveMulti(ctx context.Context, w io.Writer) erro
 			return errs.Wrap(err)
 		}
 		if len(lines) == 0 {
+			fmt.Fprintln(w)
 			continue
 		}
 		text := strings.TrimSpace(strings.Join(lines, "\n"))
 		if len(text) == 0 {
+			fmt.Fprintln(w)
 			continue
 		}
 		if strings.EqualFold(text, "q") || strings.EqualFold(text, "quit") {
@@ -84,6 +86,7 @@ func (cctx *ChatContext) InteractiveMulti(ctx context.Context, w io.Writer) erro
 		if err != nil {
 			return errs.Wrap(err)
 		}
+		fmt.Fprintln(w)
 		_ = cctx.AppendAssistantMessages([]string{resText})
 	}
 	return cctx.Save()
