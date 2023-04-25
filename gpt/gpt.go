@@ -7,6 +7,10 @@ import (
 	"github.com/sashabaranov/go-openai"
 )
 
+const (
+	ENV_API_KEY = "OPENAI_API_KEY"
+)
+
 type GPTContext struct {
 	apiKey   string
 	cacheDir string
