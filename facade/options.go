@@ -1,11 +1,13 @@
 package facade
 
 import (
+	"os"
 	"path/filepath"
 	"sort"
 
 	"github.com/goark/errs"
 	"github.com/goark/gocli/cache"
+	"github.com/goark/gpt-cli/gpt"
 	"github.com/goark/gpt-cli/logger"
 	"github.com/rs/zerolog"
 	"github.com/spf13/viper"
@@ -18,6 +20,10 @@ type options struct {
 }
 
 func getOptions() (*options, error) {
+	apiKey := os.Getenv(gpt.ENV_API_KEY)
+	if s := viper.GetString("api-key"); len(s) > 0 {
+		apiKey = s
+	}
 	logger, err := logger.New(
 		logger.LevelFrom(viper.GetString("log-level")),
 		viper.GetString("log-dir"),
@@ -26,7 +32,7 @@ func getOptions() (*options, error) {
 		return nil, errs.Wrap(err)
 	}
 	return &options{
-		APIKey:   viper.GetString("api-key"),
+		APIKey:   apiKey,
 		CacheDir: cache.Dir(Name),
 		Logger:   logger,
 	}, nil
