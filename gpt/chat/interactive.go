@@ -19,7 +19,7 @@ func (cctx *ChatContext) Interactive(ctx context.Context, w io.Writer) error {
 	}
 	client := cctx.Client()
 	editor := readline.Editor{
-		Prompt: func() (int, error) { return fmt.Print("\nChat>") },
+		PromptWriter: func(w io.Writer) (int, error) { return fmt.Fprint(w, "\nChat>") },
 	}
 	fmt.Fprintln(w, "Input 'q' or 'quit' to stop")
 	cctx.prepare.Stream = true
