@@ -1,6 +1,9 @@
 package facade
 
 import (
+	"io"
+	"strings"
+
 	"github.com/atotto/clipboard"
 	"github.com/goark/errs"
 	"github.com/goark/gocli/rwi"
@@ -22,10 +25,6 @@ func newChatCmd(ui *rwi.RWI) *cobra.Command {
 				return debugPrint(ui, err)
 			}
 			// local options
-			clipboardFlag, err := cmd.Flags().GetBool("clipboard")
-			if err != nil {
-				return debugPrint(ui, err)
-			}
 			prepPath, err := cmd.Flags().GetString("prepare-file")
 			if err != nil {
 				return debugPrint(ui, err)
@@ -38,10 +37,6 @@ func newChatCmd(ui *rwi.RWI) *cobra.Command {
 			if err != nil {
 				return debugPrint(ui, err)
 			}
-			msg, err := cmd.Flags().GetString("message")
-			if err != nil {
-				return debugPrint(ui, err)
-			}
 			savePath, err := cmd.Flags().GetString("output-file")
 			if err != nil {
 				return debugPrint(ui, err)
@@ -50,6 +45,31 @@ func newChatCmd(ui *rwi.RWI) *cobra.Command {
 			if err != nil {
 				return debugPrint(ui, err)
 			}
+			clipboardFlag, err := cmd.Flags().GetBool("clipboard")
+			if err != nil {
+				return debugPrint(ui, err)
+			}
+			pipeFlag, err := cmd.Flags().GetBool("pipe")
+			if err != nil {
+				return debugPrint(ui, err)
+			}
+			msg, err := cmd.Flags().GetString("message")
+			if err != nil {
+				return debugPrint(ui, err)
+			}
+			if clipboardFlag {
+				msg, err = clipboard.ReadAll()
+				if err != nil {
+					return debugPrint(ui, err)
+				}
+			} else if pipeFlag {
+				b, err := io.ReadAll(ui.Reader())
+				if err != nil {
+					return debugPrint(ui, err)
+				}
+				msg = string(b)
+			}
+			msg = strings.TrimSpace(msg)
 
 			// create Chat context
 			cctx, err := chat.New(opts.APIKey, opts.CacheDir, opts.Logger, prepPath, savePath)
@@ -62,16 +82,6 @@ func newChatCmd(ui *rwi.RWI) *cobra.Command {
 			// message from command-line
 			if len(msg) > 0 {
 				msgs = append(msgs, msg)
-			}
-			// message from clipboard
-			if clipboardFlag {
-				text, err := clipboard.ReadAll()
-				if err != nil {
-					return debugPrint(ui, err)
-				}
-				if len(text) > 0 {
-					msgs = append(msgs, text)
-				}
 			}
 			// messages from attached files
 			for _, path := range paths {
@@ -92,9 +102,11 @@ func newChatCmd(ui *rwi.RWI) *cobra.Command {
 			return nil
 		},
 	}
-	chatCmd.Flags().BoolP("clipboard", "c", false, "Input message from clipboard")
-	chatCmd.Flags().BoolP("rest", "", false, "Output from GPT by no streaming")
 	chatCmd.Flags().StringP("message", "m", "", "Chat message")
+	chatCmd.Flags().BoolP("clipboard", "", false, "Input message from clipboard")
+	chatCmd.Flags().BoolP("pipe", "", false, "Input message from standard input")
+	chatCmd.MarkFlagsMutuallyExclusive("message", "pipe", "clipboard")
+	chatCmd.Flags().BoolP("rest", "", false, "Output from GPT by no streaming")
 	chatCmd.Flags().StringP("prepare-file", "p", "", "Path of prepare file (JSON format)")
 	chatCmd.Flags().StringSliceP("attach-file", "a", nil, "Path of attach files (text file only)")
 	chatCmd.Flags().StringP("output-file", "o", "", "Path of save file (JSON format)")
